@@ -14,44 +14,26 @@ st.markdown("Predict customer revenue using neural network model")
 def load_model():
     """Load the trained model"""
     try:
-        # Load model
+        # Load model without compile
         model = tf.keras.models.load_model('revenue_model.h5', compile=False)
-        
-        # Recompile with current TensorFlow version
-        model.compile(
-            optimizer='adam',
-            loss='mse'
-        )
-        
         return model
     except Exception as e:
         st.error(f"Error loading model: {e}")
         return None
 
-def create_feature_vector(device_encoded, hits, mean_hits_month, mean_hits_year, 
-                         mean_pageviews_month, mean_pageviews_year, month, pageviews,
-                         sum_hits_month, sum_hits_year,
-                         sum_pageviews_month, sum_pageviews_year,
-                         visit_number, year):
-    """Create feature vector with CORRECT ORDER matching training data"""
+def create_feature_vector(device_encoded, hits, mean_hits_month, 
+                         mean_pageviews_month, month, pageviews, visit_number, year):
+    """Create feature vector with CORRECT ORDER matching training data (8 features)"""
     
     features = np.array([
         device_encoded,          # 1. deviceCategory_encoded
         hits,                    # 2. hits
         mean_hits_month,         # 3. mean_hits_month
-        mean_hits_year,          # 4. mean_hits_year
-        mean_pageviews_month,    # 5. mean_pageviews_month
-        mean_pageviews_year,     # 6. mean_pageviews_year
-        month,                   # 7. month
-        pageviews,               # 8. pageviews
-#        sum_hits_day,            # 9. sum_hits_day
-        sum_hits_month,          # 10. sum_hits_month
-        sum_hits_year,           # 11. sum_hits_year
-#        sum_pageviews_day,       # 12. sum_pageviews_day
-        sum_pageviews_month,     # 13. sum_pageviews_month
-        sum_pageviews_year,      # 14. sum_pageviews_year
-        visit_number,            # 15. visitNumber
-        year                     # 16. year
+        mean_pageviews_month,    # 4. mean_pageviews_month
+        month,                   # 5. month
+        pageviews,               # 6. pageviews
+        visit_number,            # 7. visitNumber
+        year                     # 8. year
     ], dtype=np.float32)
     
     return features.reshape(1, -1)
@@ -73,17 +55,15 @@ if model is not None:
     if input_method == "Manual Input":
         st.subheader("Enter Customer Data")
         
-        # Device Category
-        st.markdown("**📱 Device Information**")
-        device_options = {"Desktop": 0, "Mobile": 1, "Tablet": 2}
-        device_category = st.selectbox("Device Category", list(device_options.keys()))
-        device_encoded = device_options[device_category]
+        # Organize inputs in columns
+        col1, col2 = st.columns(2)
         
-        # Raw features section
-        st.markdown("**📊 Raw Metrics**")
-        col_raw1, col_raw2 = st.columns(2)
-        
-        with col_raw1:
+        with col1:
+            st.markdown("**📱 Device & Basic Info**")
+            device_options = {"Desktop": 0, "Mobile": 1, "Tablet": 2}
+            device_category = st.selectbox("Device Category", list(device_options.keys()))
+            device_encoded = device_options[device_category]
+            
             hits = st.number_input(
                 "Hits", 
                 min_value=0.0, 
@@ -91,8 +71,7 @@ if model is not None:
                 value=4.0,
                 help="Number of hits (0-500, mean: 4.0)"
             )
-        
-        with col_raw2:
+            
             pageviews = st.number_input(
                 "Pageviews", 
                 min_value=0.0, 
@@ -100,80 +79,7 @@ if model is not None:
                 value=3.35,
                 help="Number of pageviews (0-469, mean: 3.35)"
             )
-        
-        # Main features in organized columns
-        col1, col2, col3 = st.columns(3)
-        
-        with col1:
-            st.markdown("**📈 Monthly & Yearly Averages**")
-            mean_hits_month = st.number_input(
-                "Mean Hits per Month", 
-                min_value=0.0, 
-                max_value=500.0, 
-                value=4.0,
-                help="Average hits per month (0-500, mean: 4.0)"
-            )
-            mean_hits_year = st.number_input(
-                "Mean Hits per Year", 
-                min_value=0.0, 
-                max_value=500.0, 
-                value=4.0,
-                help="Average hits per year (0-500, mean: 4.0)"
-            )
-            mean_pageviews_month = st.number_input(
-                "Mean Pageviews per Month", 
-                min_value=0.0, 
-                max_value=466.0, 
-                value=3.35,
-                help="Average pageviews per month (0-466, mean: 3.35)"
-            )
-            mean_pageviews_year = st.number_input(
-                "Mean Pageviews per Year", 
-                min_value=0.0, 
-                max_value=466.0, 
-                value=3.35,
-                help="Average pageviews per year (0-466, mean: 3.35)"
-            )
             
-        with col2:
-            st.markdown("**📊 Sum Metrics (Daily/Monthly/Yearly)**")
-            sum_hits_month = st.number_input(
-                "Sum Hits per Month", 
-                min_value=0.0, 
-                max_value=897.0, 
-                value=8.27,
-                help="Total hits per month (0-897, mean: 8.27)"
-            )
-            sum_hits_year = st.number_input(
-                "Sum Hits per Year", 
-                min_value=0.0, 
-                max_value=2663.0, 
-                value=12.16,
-                help="Total hits per year (0-2663, mean: 12.16)"
-            )
-            
-        with col3:
-            st.markdown("**📅 Time & Visit Information**")
-            sum_pageviews_month = st.number_input(
-                "Sum Pageviews per Month", 
-                min_value=0.0, 
-                max_value=816.0, 
-                value=6.78,
-                help="Total pageviews per month (0-816, mean: 6.78)"
-            )
-            sum_pageviews_year = st.number_input(
-                "Sum Pageviews per Year", 
-                min_value=0.0, 
-                max_value=2256.0, 
-                value=9.94,
-                help="Total pageviews per year (0-2256, mean: 9.94)"
-            )
-            month = st.selectbox(
-                "Month", 
-                list(range(1, 13)), 
-                index=6,
-                help="Month (1-12)"
-            )
             visit_number = st.number_input(
                 "Visit Number", 
                 min_value=0.0, 
@@ -181,6 +87,32 @@ if model is not None:
                 value=1.98,
                 help="Visit number (1-395, mean: 1.98)"
             )
+        
+        with col2:
+            st.markdown("**📊 Monthly Averages & Time**")
+            mean_hits_month = st.number_input(
+                "Mean Hits per Month", 
+                min_value=0.0, 
+                max_value=500.0, 
+                value=4.0,
+                help="Average hits per month (0-500, mean: 4.0)"
+            )
+            
+            mean_pageviews_month = st.number_input(
+                "Mean Pageviews per Month", 
+                min_value=0.0, 
+                max_value=466.0, 
+                value=3.35,
+                help="Average pageviews per month (0-466, mean: 3.35)"
+            )
+            
+            month = st.selectbox(
+                "Month", 
+                list(range(1, 13)), 
+                index=6,
+                help="Month (1-12)"
+            )
+            
             year = st.selectbox(
                 "Year", 
                 [2016, 2017], 
@@ -194,11 +126,8 @@ if model is not None:
             try:
                 # Create feature vector
                 features = create_feature_vector(
-                    device_encoded, hits, mean_hits_month, mean_hits_year,
-                    mean_pageviews_month, mean_pageviews_year, month, pageviews,
-                    sum_hits_month, sum_hits_year,
-                    sum_pageviews_month, sum_pageviews_year,
-                    visit_number, year
+                    device_encoded, hits, mean_hits_month, 
+                    mean_pageviews_month, month, pageviews, visit_number, year
                 )
                 
                 # Make prediction
@@ -239,11 +168,8 @@ if model is not None:
                 # Show feature vector for debugging
                 with st.expander("🔍 Debug Info - Feature Vector"):
                     feature_names = [
-                        'deviceCategory_encoded', 'mean_hits_month', 'mean_hits_year',
-                        'mean_pageviews_month', 'mean_pageviews_year', 'month',
-                        'sum_hits_month', 'sum_hits_year',
-                        'sum_pageviews_month', 'sum_pageviews_year',
-                        'visitNumber', 'year', 'hits', 'pageviews'
+                        'deviceCategory_encoded', 'hits', 'mean_hits_month',
+                        'mean_pageviews_month', 'month', 'pageviews', 'visitNumber', 'year'
                     ]
                     debug_df = pd.DataFrame({
                         'Feature': feature_names,
@@ -262,7 +188,7 @@ if model is not None:
         uploaded_file = st.file_uploader(
             "Choose CSV file", 
             type="csv",
-            help="Upload a CSV file with all 16 required features"
+            help="Upload a CSV file with all 8 required features"
         )
         
         if uploaded_file is not None:
@@ -279,13 +205,10 @@ if model is not None:
                 with col_info2:
                     st.metric("Columns", df.shape[1])
                 
-                # Required columns for 16 features (CORRECT ORDER)
+                # Required columns for 8 features (CORRECT ORDER)
                 required_cols = [
-                    'deviceCategory_encoded', 'hits', 'mean_hits_month', 'mean_hits_year',
-                    'mean_pageviews_month', 'mean_pageviews_year', 'month', 'pageviews',
-                    'sum_hits_month', 'sum_hits_year',
-                    'sum_pageviews_month', 'sum_pageviews_year',
-                    'visitNumber', 'year'
+                    'deviceCategory_encoded', 'hits', 'mean_hits_month',
+                    'mean_pageviews_month', 'month', 'pageviews', 'visitNumber', 'year'
                 ]
                 
                 # Check for deviceCategory column (if not encoded yet)
@@ -296,7 +219,6 @@ if model is not None:
                 
                 # Check columns
                 missing_cols = [col for col in required_cols if col not in df.columns]
-                available_cols = [col for col in required_cols if col in df.columns]
                 
                 if missing_cols:
                     st.warning(f"⚠️ **Missing columns:** {', '.join(missing_cols)}")
@@ -420,35 +342,27 @@ st.sidebar.markdown("---")
 st.sidebar.markdown("### 📊 Model Information")
 st.sidebar.markdown("""
 **Architecture:**
-- Input Layer: 16 features
-- Hidden Layer 1: 256 neurons
-- Hidden Layer 2: 128 neurons  
+- Input Layer: 8 features
+- Hidden Layers: Deep Neural Network
 - Output Layer: 1 neuron (revenue)
 
 **Performance:**
 - Framework: TensorFlow/Keras
-- Loss Function: MSE
-- Optimizer: Adam
+- Training: Train/Val/Test Split
+- Optimization: Early Stopping + Hyperparameter Tuning
 """)
 
 # Feature statistics in sidebar
-# Feature statistics in sidebar
 with st.sidebar.expander("📋 Feature Statistics"):
     st.markdown("""
-    <b>Feature Ranges (Min/Max/Mean):</b><br><br>
+    <b>Feature Ranges:</b><br><br>
     • deviceCategory_encoded: 0-2<br>
-    • hits: 0-500<br>
-    • pageviews: 0-469<br>
-    • mean_hits_month: 0-500<br>
-    • mean_hits_year: 0-500<br>
-    • mean_pageviews_month: 0-466<br>
-    • mean_pageviews_year: 0-466<br>
+    • hits: 0-500 (mean: 4.0)<br>
+    • mean_hits_month: 0-500 (mean: 4.0)<br>
+    • mean_pageviews_month: 0-466 (mean: 3.35)<br>
     • month: 1-12<br>
-    • sum_hits_month: 0-897<br>
-    • sum_hits_year: 0-2663<br>
-    • sum_pageviews_month: 0-816<br>
-    • sum_pageviews_year: 0-2256<br>
-    • visitNumber: 0-395<br>
+    • pageviews: 0-469 (mean: 3.35)<br>
+    • visitNumber: 0-395 (mean: 1.98)<br>
     • year: 2016-2017<br>
     """, unsafe_allow_html=True)
 
@@ -466,14 +380,19 @@ st.markdown("---")
 st.markdown("""
 ### 💡 Usage Tips:
 - **Manual Input**: Enter customer data to get individual revenue prediction
-- **CSV Upload**: Upload CSV with 14 required features for batch predictions
+- **CSV Upload**: Upload CSV with 8 required features for batch predictions
 - **Feature Values**: Use realistic values within the specified ranges
 - **Revenue Output**: Model outputs log revenue, converted to actual $ estimates
-- **Quality Check**: Review feature statistics in sidebar for realistic inputs
 
-### 📈 Model Features:
-The model uses 14 carefully engineered features including device type, user behavior patterns, 
-and temporal aggregations to predict customer revenue potential.
+### 📈 Model Features (8 total):
+1. **deviceCategory_encoded**: Device type (0=Desktop, 1=Mobile, 2=Tablet)
+2. **hits**: Number of hits per session
+3. **mean_hits_month**: Average hits per month
+4. **mean_pageviews_month**: Average pageviews per month
+5. **month**: Month of visit (1-12)
+6. **pageviews**: Number of pageviews per session
+7. **visitNumber**: Visit sequence number
+8. **year**: Year of visit (2016-2017)
 """)
 
 st.markdown("---")
